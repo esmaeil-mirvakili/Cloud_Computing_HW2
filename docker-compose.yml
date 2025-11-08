@@ -1,0 +1,28 @@
+services:
+  coordinator:
+    build: .
+    volumes:
+      - ./txt:/app/txt
+      - ./shared:${SHARED_PATH}
+    container_name: coordinator
+    depends_on:
+      - worker
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+        reservations:
+          memory: 2G
+    environment:
+      NUM_WORKERS: "${NUM_WORKERS:-3}"
+      TASK_TIMEOUT: "20"
+      DATA_URLS: "${DATA_URLS:-}"
+      PROJ_NAME: "${PROJ_NAME}"
+    command: ["python", "coordinator.py", "${DATA_URLS}"]
+
+  worker:
+    build: .
+    volumes:
+      - ./txt:/app/txt
+      - ./shared:${SHARED_PATH}
+    command: ["python", "worker.py"]
