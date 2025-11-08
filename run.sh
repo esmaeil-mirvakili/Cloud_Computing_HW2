@@ -26,6 +26,7 @@ echo "  NUM_WORKERS = ${NUM_WORKERS}"
 echo "  DATA_URLS   = ${DATA_URLS}"
 
 PROJ_NAME="${PROJ_NAME:-$(basename "$PWD")}"
+PROJ_NAME="${PROJ_NAME,,}"
 SHARED_PATH=/shared
 
 # Export env vars for docker compose
