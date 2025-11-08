@@ -32,7 +32,6 @@ STOP_WORDS = set(
 )
 TR = "".maketrans(string.punctuation, " " * len(string.punctuation))
 
-
 class MapReduceService(rpyc.Service):
     def exposed_map(self, map_task):
         """Map step: tokenize and count words in text chunk."""
@@ -100,6 +99,5 @@ class MapReduceService(rpyc.Service):
 
 if __name__ == "__main__":
     from rpyc.utils.server import ThreadedServer
-
     t = ThreadedServer(MapReduceService, port=18861)
     t.start()
