@@ -18,7 +18,7 @@ import shutil
 
 NUM_WORKERS = int(os.getenv("NUM_WORKERS", "3"))
 PROJ_NAME = os.getenv("PROJ_NAME", "cloud_computing_hw2")
-OVER_PARTITION = int(os.getenv("OVER_PARTITION", "10"))
+OVER_PARTITION = int(os.getenv("OVER_PARTITION", "4"))
 TASK_TIMEOUT = int(os.getenv("TASK_TIMEOUT", "20"))
 SHARED_PATH = os.getenv("SHARED_PATH", "/shared")
 
