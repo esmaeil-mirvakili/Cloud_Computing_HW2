@@ -18,7 +18,7 @@ import shutil
 
 NUM_WORKERS = int(os.getenv("NUM_WORKERS", "3"))
 PROJ_NAME = os.getenv("PROJ_NAME", "cloud_computing_hw2")
-OVER_PARTITION = int(os.getenv("OVER_PARTITION", "4"))
+OVER_PARTITION = int(os.getenv("OVER_PARTITION", "20"))
 TASK_TIMEOUT = int(os.getenv("TASK_TIMEOUT", "20"))
 SHARED_PATH = os.getenv("SHARED_PATH", "/shared")
 
@@ -47,11 +47,16 @@ class Task:
         self.start_time = None   # float timestamp
         self.result = None       # dict of results
 
+connection_cache = {}
 
 def connect_to_worker(worker):
-    """Return an RPyC connection to the given worker (host, port)."""
     host, port = worker
-    return rpyc.connect(host, port)
+    key = (host, port)
+    conn = connection_cache.get(key)
+    if conn is None or not conn.root:  # crude liveness check
+        conn = rpyc.connect(host, port)
+        connection_cache[key] = conn
+    return conn
 
 
 def get_available_worker(tasks):
@@ -303,13 +308,12 @@ def split_text(file_paths, n):
     files = []
     total = 0
     for path in file_paths:
-        result_path = shutil.copy2(path, SHARED_PATH)
         try:
             sz = Path(path).stat().st_size
         except FileNotFoundError:
             continue
         if sz > 0:
-            files.append((result_path, sz))
+            files.append((path, sz))
             total += sz
     if not files:
         return []
@@ -321,8 +325,8 @@ def split_text(file_paths, n):
         if sz <= chunk_bytes:
             chunks.append((path, 0, sz))
             continue
-        n = max(1, math.ceil(sz / chunk_bytes))
-        step = math.ceil(sz / n)
+        num_chunks_for_file = max(1, math.ceil(sz / chunk_bytes))
+        step = math.ceil(sz / num_chunks_for_file)
         s = 0
         while s < sz:
             e = min(s + step, sz)
@@ -379,7 +383,11 @@ if __name__ == "__main__":
     # DOWNLOAD AND UNZIP DATASET
     download(sys.argv[1:])
     start_time = time.time()
-    input_files = glob.glob('txt/*')
+    files = glob.glob('txt/*')
+    input_files = []
+    for file in files:
+        input_file = result_path = shutil.copy2(file, SHARED_PATH)
+        input_files.append(input_file)
     word_counts = mapreduce_wordcount(input_files)
     print('\nTOP 20 WORDS BY FREQUENCY\n')
     top20 = word_counts[0:20]
