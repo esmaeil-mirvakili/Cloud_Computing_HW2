@@ -23,10 +23,7 @@ TASK_TIMEOUT = int(os.getenv("TASK_TIMEOUT", "20"))
 SHARED_PATH = os.getenv("SHARED_PATH", "/shared")
 
 
-WORKERS = [
-    (f"{PROJ_NAME}-worker-{i + 1}", 18861)
-    for i in range(NUM_WORKERS)
-]
+WORKERS = [(f"{PROJ_NAME}-worker-{i + 1}", 18861) for i in range(NUM_WORKERS)]
 
 task_lock = threading.Lock()
 
@@ -39,15 +36,17 @@ class TaskState:
 
 class Task:
     def __init__(self, task_id, kind, payload):
-        self.id = task_id        # integer id
-        self.kind = kind         # "map" or "reduce"
+        self.id = task_id  # integer id
+        self.kind = kind  # "map" or "reduce"
         self.state = TaskState.PENDING
         self.payload = payload
-        self.worker = None       # (host, port)
-        self.start_time = None   # float timestamp
-        self.result = None       # dict of results
+        self.worker = None  # (host, port)
+        self.start_time = None  # float timestamp
+        self.result = None  # dict of results
+
 
 connection_cache = {}
+
 
 def connect_to_worker(worker):
     host, port = worker
@@ -126,7 +125,7 @@ def run_map_phase(map_tasks):
                 continue
 
             task = pending[0]
-            
+
             threading.Thread(
                 target=run_map_task,
                 args=(task, worker),
@@ -167,9 +166,7 @@ def run_reduce_task(task, worker):
 
     try:
         conn = connect_to_worker(worker)
-        result = conn.root.reduce(
-            task.payload
-        )
+        result = conn.root.reduce(task.payload)
     except Exception as e:
         print(f"Error while sending a reduce task: {e}")
         # On error, mark pending for retry
@@ -248,12 +245,7 @@ def mapreduce_wordcount(file_paths):
     # MAP PHASE: Send chunks and get intermediate pairs
     map_tasks = []
     for i, (path, start, end) in enumerate(chunks):
-        payload = {
-            "index": i,
-            "path": path,
-            "start": start,
-            "end": end
-        }
+        payload = {"index": i, "path": path, "start": start, "end": end}
         map_tasks.append(Task(i, "map", payload))
 
     print(f"Run {len(map_tasks)} map tasks")
@@ -278,9 +270,9 @@ def mapreduce_wordcount(file_paths):
     for index, bucket in enumerate(buckets):
         name = f"reduce_{index}"
         path = os.path.join(f"{SHARED_PATH}", f"{name}.json")
-        reduce_tasks.append(Task(base_id + index, "reduce", bucket))
-        # with open(path, "w", encoding="utf-8") as f:
-        #     json.dump(bucket, f)
+        reduce_tasks.append(Task(base_id + index, "reduce", path))
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(bucket, f)
 
     print(f"Run {len(reduce_tasks)} reduce tasks")
     run_reduce_phase(reduce_tasks)
@@ -289,11 +281,11 @@ def mapreduce_wordcount(file_paths):
     print("Final aggregation...")
     final_counts = collections.defaultdict(int)
     for t in reduce_tasks:
-        # path = t.result["output"]
-        # with open(path, "r", encoding="utf-8") as f:
-        #     parts = json.load(f)
-        for w in t.result:
-            final_counts[w] += t.result[w]
+        path = t.result["output"]
+        with open(path, "r", encoding="utf-8") as f:
+            parts = json.load(f)
+        for w, c in parts.items():
+            final_counts[w] += c
 
     # Return sorted list of (word, count) descending
     total_counts = sorted(
@@ -341,7 +333,7 @@ def partition_dict(d, n):
 
     buckets = [[] for _ in range(n)]
     for word, counts_list in d.items():
-        idx = hash(word) % n    # round robin distribution
+        idx = hash(word) % n  # round robin distribution
         buckets[idx].append((word, counts_list))
     return buckets
 
@@ -377,24 +369,25 @@ def download(urls="https://mattmahoney.net/dc/enwik9.zip"):
         zip_path.unlink(missing_ok=True)
 
         print("File unzipped...")
+    files = glob.glob("txt/*")
+    input_files = []
+    for file in files:
+        input_file = shutil.copy2(file, SHARED_PATH)
+        input_files.append(input_file)
+    return input_files
 
 
 if __name__ == "__main__":
     # DOWNLOAD AND UNZIP DATASET
-    download(sys.argv[1:])
+    input_files = download(sys.argv[1:])
     start_time = time.time()
-    files = glob.glob('txt/*')
-    input_files = []
-    for file in files:
-        input_file = result_path = shutil.copy2(file, SHARED_PATH)
-        input_files.append(input_file)
     word_counts = mapreduce_wordcount(input_files)
-    print('\nTOP 20 WORDS BY FREQUENCY\n')
+    print("\nTOP 20 WORDS BY FREQUENCY\n")
     top20 = word_counts[0:20]
     longest = max(len(word) for word, count in top20)
     i = 1
     for word, count in top20:
-        print('%s.\t%-*s: %5s' % (i, longest+1, word, count))
+        print("%s.\t%-*s: %5s" % (i, longest + 1, word, count))
         i = i + 1
     end_time = time.time()
     elapsed_time = end_time - start_time
