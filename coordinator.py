@@ -278,9 +278,9 @@ def mapreduce_wordcount(file_paths):
     for index, bucket in enumerate(buckets):
         name = f"reduce_{index}"
         path = os.path.join(f"{SHARED_PATH}", f"{name}.json")
-        reduce_tasks.append(Task(base_id + index, "reduce", path))
-        with open(path, "w", encoding="utf-8") as f:
-            json.dump(bucket, f)
+        reduce_tasks.append(Task(base_id + index, "reduce", bucket))
+        # with open(path, "w", encoding="utf-8") as f:
+        #     json.dump(bucket, f)
 
     print(f"Run {len(reduce_tasks)} reduce tasks")
     run_reduce_phase(reduce_tasks)
@@ -289,11 +289,11 @@ def mapreduce_wordcount(file_paths):
     print("Final aggregation...")
     final_counts = collections.defaultdict(int)
     for t in reduce_tasks:
-        path = t.result["output"]
-        with open(path, "r", encoding="utf-8") as f:
-            parts = json.load(f)
-        for w, c in parts.items():
-            final_counts[w] += c
+        # path = t.result["output"]
+        # with open(path, "r", encoding="utf-8") as f:
+        #     parts = json.load(f)
+        for w in t.result:
+            final_counts[w] += t.result[w]
 
     # Return sorted list of (word, count) descending
     total_counts = sorted(

@@ -74,15 +74,12 @@ class MapReduceService(rpyc.Service):
             json.dump(counts, out)
         return {"output": output_path}
 
-    def exposed_reduce(self, items_path):
+    def exposed_reduce(self, grouped_items):
         """Reduce step: sum counts for a subset of words."""
         result = {}
 
-        if not items_path:
+        if not grouped_items:
             return result
-
-        with open(items_path, "r", encoding="utf-8") as f:
-            grouped_items = json.load(f)
 
         for word, counts_list in grouped_items:
             if isinstance(counts_list, int):
@@ -90,11 +87,7 @@ class MapReduceService(rpyc.Service):
             else:
                 total = sum(counts_list)
             result[word] = result.get(word, 0) + total
-        output_path = f"{os.path.basename(items_path)}_reduce_result.json"
-        output_path = os.path.join(os.path.dirname(items_path), output_path)
-        with open(output_path, "w", encoding="utf-8") as out:
-            json.dump(result, out)
-        return {"output": output_path}
+        return result
 
 
 if __name__ == "__main__":
