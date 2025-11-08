@@ -1,20 +1,10 @@
 #!/usr/bin/env bash
 
-if [ "$#" -lt 1 ]; then
-    echo "Usage: $0 NUM_WORKERS [url1 [url2 ...]]"
-    echo "Example: $0 3 https://mattmahoney.net/dc/enwik9.zip"
-    exit 1
-fi
-
-NUM_WORKERS="$1"
-shift
-
-# Join remaining args as a single string of URLs
-if [ "$#" -eq 0 ]; then
-    DATA_URLS="https://mattmahoney.net/dc/enwik9.zip"  # coordinator will use its default
-else
-    DATA_URLS="$*"
-fi
+NUM_WORKERS="${NUM_WORKERS:-8}"
+DATA_URLS="${DATA_URLS:-https://mattmahoney.net/dc/enwik9.zip}"
+PROJ_NAME="${PROJ_NAME:-$(basename "$PWD")}"
+PROJ_NAME="${PROJ_NAME,,}"
+SHARED_PATH=/shared
 
 mkdir txt
 rm -rf txt/*
@@ -24,10 +14,6 @@ rm -rf shared/*
 echo "Running with:"
 echo "  NUM_WORKERS = ${NUM_WORKERS}"
 echo "  DATA_URLS   = ${DATA_URLS}"
-
-PROJ_NAME="${PROJ_NAME:-$(basename "$PWD")}"
-PROJ_NAME="${PROJ_NAME,,}"
-SHARED_PATH=/shared
 
 # Export env vars for docker compose
 export NUM_WORKERS
